@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "youtube-service",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-06-16T13:45:11+0900",
+      "summary": "YouTube 서비스 레이어+공유타입+env 헬퍼 완성 (test/lint/build green, 12 tests). 생성: src/types.ts(VideoSummary,ChannelProfile + 후속용 ScoredCandidate,Recommendation,TrendReport), src/lib/env.ts(getConfig()→{apiKey,channelHandle,regionCode}; 키 없으면 code:'NO_KEY' throw, regionCode 기본 KR), src/services/youtube.ts(`import 'server-only'`; createYoutubeClient({apiKey,fetchImpl=fetch})→ resolveChannelId/getRecentVideoIds/getTrending/searchVideoIds/hydrateVideos; hydrate는 50개 배치; 에러 code: NOT_FOUND·QUOTA·HTTP), +각 *.test.ts(fetch 주입/vi.stubEnv로 키·네트워크 없이). vitest.config.mts에 server-only→empty.js alias 추가(키 노출 방지하며 테스트 가능). 키는 env.ts·youtube.ts(서버) 밖으로 안 샘. searchVideoIds는 정의만(쿼터 제어는 step3).",
+      "completed_at": "2026-06-16T13:58:29+0900"
     },
     {
       "step": 2,
