@@ -1,0 +1,11 @@
+{
+  "project": "NextPick",
+  "phase": "0-mvp",
+  "steps": [
+    { "step": 0, "name": "project-scaffold", "status": "pending" },
+    { "step": 1, "name": "youtube-service", "status": "pending" },
+    { "step": 2, "name": "scoring", "status": "pending" },
+    { "step": 3, "name": "api-route", "status": "pending" },
+    { "step": 4, "name": "dashboard-ui", "status": "pending" }
+  ]
+}
