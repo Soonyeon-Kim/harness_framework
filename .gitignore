@@ -4,6 +4,10 @@ out/
 next-env.d.ts
 tsconfig.tsbuildinfo
 
+# Python (harness scripts)
+__pycache__/
+*.pyc
+
 # phase execution outputs
 phases/**/phase*-output.json
 phases/**/step*-output.json
