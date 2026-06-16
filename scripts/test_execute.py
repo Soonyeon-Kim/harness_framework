@@ -557,3 +557,46 @@ class TestCheckBlockers:
         with pytest.raises(SystemExit) as exc_info:
             inst._check_blockers()
         assert exc_info.value.code == 2
+
+
+# ---------------------------------------------------------------------------
+# 인코딩 안전 (비-UTF-8 로케일 Windows)
+# ---------------------------------------------------------------------------
+
+class TestEncodingSafety:
+    def test_run_git_decodes_as_utf8(self, executor):
+        """_run_git은 git의 UTF-8 출력을 cp949로 디코드하다 죽으면 안 된다."""
+        with patch("subprocess.run", return_value=MagicMock(returncode=0)) as m:
+            executor._run_git("status")
+        assert m.call_args.kwargs["encoding"] == "utf-8"
+        assert m.call_args.kwargs["errors"] == "replace"
+
+    def test_invoke_claude_decodes_as_utf8(self, executor):
+        """claude 서브프로세스 출력도 UTF-8로 디코드해야 한다."""
+        mock_result = MagicMock(returncode=0, stdout="{}", stderr="")
+        with patch("subprocess.run", return_value=mock_result) as m:
+            executor._invoke_claude({"step": 2, "name": "ui"}, "preamble")
+        assert m.call_args.kwargs["encoding"] == "utf-8"
+
+    def test_force_utf8_io_survives_non_utf8_stdout(self):
+        """비-UTF-8 stdout(cp949)에서 _force_utf8_io 후 em 대시·체크마크·한글을
+        print해도 UnicodeEncodeError로 죽지 않아야 한다. PYTHONIOENCODING으로
+        어느 머신에서나 버그 조건을 강제 재현한다."""
+        scripts_dir = str(Path(__file__).resolve().parent)
+        snippet = (
+            "import sys; sys.path.insert(0, r'{d}');"
+            "import execute as ex; ex._force_utf8_io();"
+            "print('feat(x): step 0 — name ✓ 한글')"
+        ).format(d=scripts_dir)
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "cp949"
+        r = subprocess.run(
+            [sys.executable, "-c", snippet],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
+        )
+        assert r.returncode == 0, r.stderr
+        assert "—" in r.stdout  # em 대시가 보존됨
+
+    def test_force_utf8_io_is_safe_when_no_reconfigure(self):
+        """reconfigure가 없는 스트림(예: pytest capture)에서도 예외 없이 통과."""
+        ex._force_utf8_io()  # 현재 프로세스에서 호출해도 죽지 않아야 함

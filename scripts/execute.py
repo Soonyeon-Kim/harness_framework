@@ -108,7 +108,8 @@ class StepExecutor:
 
     def _run_git(self, *args) -> subprocess.CompletedProcess:
         cmd = ["git"] + list(args)
-        return subprocess.run(cmd, cwd=self._root, capture_output=True, text=True)
+        return subprocess.run(cmd, cwd=self._root, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
 
     def _checkout_branch(self):
         branch = f"feat-{self._phase_name}"
@@ -405,7 +406,24 @@ class StepExecutor:
         print(f"{'='*60}")
 
 
+def _force_utf8_io():
+    """stdout/stderr를 UTF-8로 강제한다.
+
+    cp949 같은 비-UTF-8 로케일 Windows에서 백그라운드(파이프) 실행 시 Python stdout의
+    기본 인코딩이 로케일(cp949, errors='strict')이 되어, em 대시(—)·체크마크(✓)·한글이
+    든 커밋 메시지/로그를 print()할 때 UnicodeEncodeError로 죽는다. 이를 막는다.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 def main():
+    _force_utf8_io()
     parser = argparse.ArgumentParser(description="Harness Step Executor")
     parser.add_argument("phase_dir", help="Phase directory name (e.g. 0-mvp)")
     parser.add_argument("--push", action="store_true", help="Push branch after completion")
