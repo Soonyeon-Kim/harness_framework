@@ -58,7 +58,7 @@ export async function GET(): Promise<Response> {
 
     // 9. Score and rank candidates, then build recommendations
     const rankedCandidates = rankCandidates(candidates, channelKeywords, now);
-    const recommendations = buildRecommendations(rankedCandidates, channelKeywords);
+    const recommendations = buildRecommendations(rankedCandidates);
 
     // 10. Calculate the 4 key channel analytics metrics
     const averageViewCount =

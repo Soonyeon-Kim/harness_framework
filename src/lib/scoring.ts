@@ -12,6 +12,9 @@ const MIN_AGE_DAYS = 1 / 24;
 const DEFAULT_VIRALITY_WEIGHT = 0.6;
 const DEFAULT_RELEVANCE_WEIGHT = 0.4;
 
+/** 추천 카드 최대 개수. 추천 섹션은 "다음에 만들 것" 큐레이션이라 상위 N개만 보여준다. */
+const MAX_RECOMMENDATIONS = 10;
+
 /** 제목을 소문자 토큰 배열로 자른다. 한글+영문 토큰, 2자 이상, 글자를 포함해야 함. */
 function tokenize(text: string): string[] {
   const matches = text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
@@ -142,27 +145,30 @@ export function rankCandidates(
   );
 }
 
-/** 상위 후보의 제목 패턴 + 내 키워드를 결합해 근거 있는 추천 카드를 만든다. */
+/**
+ * 내 니치와 겹치는(matchedKeywords ≥ 1) 후보만 골라 상위 MAX_RECOMMENDATIONS개의
+ * 근거 있는 추천 카드를 만든다. 조회수만 높고 무관한 트렌딩(예: K-pop MV)은 제외한다.
+ * `ranked`는 rankCandidates가 점수 내림차순으로 정렬해 넘긴다는 전제이므로 재정렬하지 않는다.
+ */
 export function buildRecommendations(
   ranked: ScoredCandidate[],
-  channelKeywords: string[],
 ): Recommendation[] {
-  return ranked.map(({ video, matchedKeywords, score, virality }) => {
-    const focusKeyword = matchedKeywords[0] ?? channelKeywords[0] ?? "내 채널";
-    const dailyViews = Math.round(virality);
-    const title = `'${focusKeyword}' 관점으로 푸는 ${video.title}`;
-    const rationale =
-      matchedKeywords.length > 0
-        ? `'${video.channelTitle}'의 '${video.title}'이(가) 하루 약 ${dailyViews}회 조회속도로 떴고, 내 채널 키워드 ${matchedKeywords.join(", ")}와(과) 겹칩니다.`
-        : `'${video.channelTitle}'의 '${video.title}'이(가) 하루 약 ${dailyViews}회 조회속도로 떴습니다. 겹치는 키워드는 없지만 니치 확장 후보로 참고하세요.`;
+  return ranked
+    .filter(({ matchedKeywords }) => matchedKeywords.length > 0)
+    .slice(0, MAX_RECOMMENDATIONS)
+    .map(({ video, matchedKeywords, score, virality }) => {
+      const focusKeyword = matchedKeywords[0];
+      const dailyViews = Math.round(virality);
+      const title = `'${focusKeyword}' 관점으로 푸는 ${video.title}`;
+      const rationale = `'${video.channelTitle}'의 '${video.title}'이(가) 하루 약 ${dailyViews}회 조회속도로 떴고, 내 채널 키워드 ${matchedKeywords.join(", ")}와(과) 겹칩니다.`;
 
-    return {
-      title,
-      rationale,
-      matchedKeywords,
-      score,
-      source: video,
-      sourceUrl: `https://www.youtube.com/watch?v=${video.id}`,
-    };
-  });
+      return {
+        title,
+        rationale,
+        matchedKeywords,
+        score,
+        source: video,
+        sourceUrl: `https://www.youtube.com/watch?v=${video.id}`,
+      };
+    });
 }

@@ -204,7 +204,7 @@ describe("buildRecommendations", () => {
   };
 
   it("builds a card that carries the score, source video and a watch url", () => {
-    const [rec] = buildRecommendations([matched], ["코딩", "ai", "개발"]);
+    const [rec] = buildRecommendations([matched]);
     expect(rec.score).toBe(42);
     expect(rec.source).toEqual(matched.video);
     expect(rec.sourceUrl).toBe("https://www.youtube.com/watch?v=vid123");
@@ -214,7 +214,7 @@ describe("buildRecommendations", () => {
   });
 
   it("explains the trend and includes the overlapping keywords in the reason", () => {
-    const [rec] = buildRecommendations([matched], ["코딩", "ai", "개발"]);
+    const [rec] = buildRecommendations([matched]);
     for (const k of matched.matchedKeywords) {
       expect(rec.rationale).toContain(k);
     }
@@ -222,7 +222,27 @@ describe("buildRecommendations", () => {
     expect(rec.rationale).toContain("Tech Chan"); // 어떤 트렌드인지
   });
 
-  it("handles a candidate with no overlapping keywords", () => {
+  it("excludes candidates that share no channel keyword, even high-virality ones", () => {
+    // 겹친 키워드 없는 고조회 후보(K-pop MV 같은)는 점수가 높아도 추천에서 빠진다.
+    const relevant: ScoredCandidate = {
+      video: video({ id: "rel", title: "코딩 라이브" }),
+      virality: 50,
+      relevance: 0.5,
+      matchedKeywords: ["코딩"],
+      score: 30,
+    };
+    const irrelevantButViral: ScoredCandidate = {
+      video: video({ id: "irr", title: "K-pop MV" }),
+      virality: 9999,
+      relevance: 0,
+      matchedKeywords: [],
+      score: 95, // 점수는 더 높지만 겹침 0
+    };
+    const recs = buildRecommendations([irrelevantButViral, relevant]);
+    expect(recs.map((r) => r.source.id)).toEqual(["rel"]);
+  });
+
+  it("returns an empty list when nothing overlaps the channel keywords", () => {
     const noMatch: ScoredCandidate = {
       video: video({ id: "vid999", title: "낚시 브이로그", channelTitle: "Fish" }),
       virality: 50,
@@ -230,15 +250,28 @@ describe("buildRecommendations", () => {
       matchedKeywords: [],
       score: 10,
     };
-    const [rec] = buildRecommendations([noMatch], ["코딩"]);
-    expect(rec.matchedKeywords).toEqual([]);
-    expect(rec.rationale).toContain("조회속도");
-    expect(rec.title).toContain("코딩"); // 겹침이 없으면 내 채널 대표 키워드로 폴백
+    expect(buildRecommendations([noMatch])).toEqual([]);
   });
 
-  it("produces one recommendation per ranked candidate, preserving order", () => {
+  it("caps recommendations at the top 10, keeping the highest-ranked", () => {
+    // 입력은 이미 rankCandidates가 점수 내림차순으로 정렬해 넘긴다.
+    const many: ScoredCandidate[] = Array.from({ length: 12 }, (_, i) => ({
+      video: video({ id: `v${i}`, title: "코딩 영상" }),
+      virality: 100,
+      relevance: 0.5,
+      matchedKeywords: ["코딩"],
+      score: 100 - i,
+    }));
+    const recs = buildRecommendations(many);
+    expect(recs).toHaveLength(10);
+    expect(recs.map((r) => r.source.id)).toEqual(
+      Array.from({ length: 10 }, (_, i) => `v${i}`),
+    );
+  });
+
+  it("keeps order and recommends every matching candidate below the cap", () => {
     const second: ScoredCandidate = { ...matched, video: video({ id: "vid456", title: "코딩 라이브" }), score: 20 };
-    const recs = buildRecommendations([matched, second], ["코딩"]);
+    const recs = buildRecommendations([matched, second]);
     expect(recs.map((r) => r.source.id)).toEqual(["vid123", "vid456"]);
   });
 });
