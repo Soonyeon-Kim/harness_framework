@@ -2,10 +2,44 @@
   "project": "NextPick",
   "phase": "0-mvp",
   "steps": [
-    { "step": 0, "name": "project-scaffold", "status": "pending" },
-    { "step": 1, "name": "youtube-service", "status": "pending" },
-    { "step": 2, "name": "scoring", "status": "pending" },
-    { "step": 3, "name": "api-route", "status": "pending" },
-    { "step": 4, "name": "dashboard-ui", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "project-scaffold",
+      "status": "completed",
+      "started_at": "2026-06-16T13:29:06+0900",
+      "summary": "Next.js15+TS strict+Tailwind+Vitest 수동 스캐폴딩, lint/build/test green. 생성: package.json, tsconfig.json, next.config.ts, eslint.config.mjs, vitest.config.mts, src/app/{layout,page}.tsx, globals.css, 스모크 테스트",
+      "completed_at": "2026-06-16T13:36:12+0900"
+    },
+    {
+      "step": 1,
+      "name": "youtube-service",
+      "status": "completed",
+      "started_at": "2026-06-16T13:45:11+0900",
+      "summary": "YouTube 서비스 레이어+공유타입+env 헬퍼 완성 (test/lint/build green, 12 tests). 생성: src/types.ts(VideoSummary,ChannelProfile + 후속용 ScoredCandidate,Recommendation,TrendReport), src/lib/env.ts(getConfig()→{apiKey,channelHandle,regionCode}; 키 없으면 code:'NO_KEY' throw, regionCode 기본 KR), src/services/youtube.ts(`import 'server-only'`; createYoutubeClient({apiKey,fetchImpl=fetch})→ resolveChannelId/getRecentVideoIds/getTrending/searchVideoIds/hydrateVideos; hydrate는 50개 배치; 에러 code: NOT_FOUND·QUOTA·HTTP), +각 *.test.ts(fetch 주입/vi.stubEnv로 키·네트워크 없이). vitest.config.mts에 server-only→empty.js alias 추가(키 노출 방지하며 테스트 가능). 키는 env.ts·youtube.ts(서버) 밖으로 안 샘. searchVideoIds는 정의만(쿼터 제어는 step3).",
+      "completed_at": "2026-06-16T13:58:29+0900"
+    },
+    {
+      "step": 2,
+      "name": "scoring",
+      "status": "completed",
+      "started_at": "2026-06-16T13:58:29+0900",
+      "summary": "추천 엔진 순수함수 TDD 완성 (test/lint/build green, 31 신규 테스트, 총 43). 생성: src/lib/scoring.ts(extractKeywords·keywordOverlap(자카드)·ageInDays(최소1/24일 가드)·viralityScore(조회수÷경과일)·relevanceScore·combinedScore(maxVirality로 정규화 후 가중결합→0~100, 기본가중 virality0.6/relevance0.4)·rankCandidates(now 주입, 점수→virality→id tie-break 내림차순)·buildRecommendations) + scoring.test.ts. 순수·결정적(fetch/env/Date.now() 없음, now:Date 주입). 타입은 step1의 src/types.ts ScoredCandidate/Recommendation를 그대로 재사용(추가 안 함) — Recommendation 필드는 rationale·source(VideoSummary)·sourceUrl(youtube watch URL). matchedKeywords는 channelKeywords 순서 유지. 제목 토큰화는 소문자·2자↑·글자포함(순수숫자 제외).",
+      "completed_at": "2026-06-16T13:58:29+0900"
+    },
+    {
+      "step": 3,
+      "name": "api-route",
+      "status": "completed",
+      "summary": "GET /api/analyze 단일 서버 진입점 완성 (lint/build/test green, route 테스트 5개). 생성: src/app/api/analyze/route.ts. dynamic='force-dynamic'(키 없이 빌드 통과). 흐름: getConfig→createYoutubeClient→resolveChannelId→getRecentVideoIds(25)→hydrate→extractKeywords(상위5)→getTrending→상위2키워드만 searchVideoIds(publishedAfter=최근30일)→트렌딩과 중복제거 후 통계 미보유분만 hydrate→rankCandidates(now 주입)→buildRecommendations. 채널 4지표(평균조회수/topKeywords/uploadCadenceDays/bestVideos TOP3) 계산해 TrendReport JSON 반환(cache-control:no-store). 에러 code→HTTP: NO_KEY 503/NOT_FOUND 404/QUOTA 429/그외 500, 본문 {error:message}. 별도 pipeline 레이어 없이 라우트가 직접 조립. catch는 unknown 타입으로 처리(any 미사용).",
+      "completed_at": "2026-06-17T07:48:31+0900"
+    },
+    {
+      "step": 4,
+      "name": "dashboard-ui",
+      "status": "completed",
+      "summary": "자동 로딩 대시보드 완성 (lint/build/test green). 생성: src/components/{TrendDashboard,ChannelSummary,TrendList,RecommendationCard}.tsx, 수정: src/app/page.tsx(동기 서버 셸, max-w-5xl). TrendDashboard='use client', 마운트 시 fetch('/api/analyze'), loading/error/empty/success 4상태 관리(error는 API가 준 메시지 그대로 표시, 새로고침 버튼으로 재요청). 3섹션 렌더: ①채널 4지표(ChannelSummary) ②추천 카드(RecommendationCard: 점수/근거/겹친키워드/소스 watch 링크) ③트렌드 목록(TrendList: 조회속도/관련도). UI_GUIDE 다크테마 준수(#0a0a0a/#141414, 상승 #22c55e, fade-in). 클라이언트는 src/services/* import 안 함(데이터는 /api/analyze로만). 수동 검증(.env.local 실제 키)은 사용자 진행.",
+      "completed_at": "2026-06-17T07:48:31+0900"
+    }
+  ],
+  "created_at": "2026-06-16T13:29:06+0900"
 }
