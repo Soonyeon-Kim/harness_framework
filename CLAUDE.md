@@ -2,6 +2,8 @@
 
 내 YouTube 채널을 자동 분석해, 내 니치에서 지금 뜨는 트렌드와 "다음에 만들면 좋을 콘텐츠"를 근거와 함께 보여주는 1인 크리에이터용 대시보드 (MVP).
 
+> 폴더명이 `harness_test`인 이유: 이 프로젝트는 하네스(step 단위 자동 실행) 방식 개발을 실험한 프로젝트다. 제품명은 NextPick.
+
 ## 기술 스택
 - Next.js 15 (App Router)
 - TypeScript (strict mode)
@@ -24,3 +26,18 @@ npm run dev      # 개발 서버
 npm run build    # 프로덕션 빌드
 npm run lint     # ESLint (eslint .)
 npm run test     # 테스트 (vitest run — 1회 실행 후 종료)
+
+단일 테스트 파일: `npx vitest run src/services/youtube.test.ts`
+
+## 환경변수
+
+`.env.local`에 넣는다 (gitignored — 템플릿과 각 변수 설명은 `.env.example` 참고):
+- `YOUTUBE_API_KEY` — YouTube Data API v3 키
+- `YOUTUBE_CHANNEL_HANDLE` — 분석할 채널 핸들 (예: `@yourhandle`)
+- `YOUTUBE_REGION_CODE` — 트렌드 지역 코드 (한국=`KR`)
+
+## 보조 폴더 (하네스 실험 산출물)
+
+- `docs/` — PRD·ARCHITECTURE·ADR·UI_GUIDE. 설계 진실원 — 기능 변경 전에 읽어라.
+- `phases/` — 하네스 step 정의 (`0-mvp/`의 step 파일 + index.json).
+- `scripts/execute.py` — 하네스 step 실행기. 실행: `python scripts/execute.py <phase-dir>` (예: `0-mvp`). 앱 코드를 직접 수정할 때는 쓰지 않는다.
